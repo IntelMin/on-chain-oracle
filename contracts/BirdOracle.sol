@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.6.0;
+pragma solidity ^0.5.16;
 
  // SPDX-License-Identifier: MIT
 /**
@@ -16,7 +16,9 @@ contract BirdOracle {
    * id: "1"
    * url: "https://www.bird.money/analytics/address/ethaddress"
    * key: "bird_rating"
-   * value: "0.4"
+   * value: "0.4" => 400000000000000000
+   * arrivedBirds: 0
+   * resolved: true/false
    * response: response from off-chain oracles 
    * nest: approved off-chain oracles nest/addresses and keep track of vote (1=not voted, 2=voted)
    */
@@ -24,9 +26,10 @@ contract BirdOracle {
     uint id;   
     string url; 
     string key; 
-    string value;  
+    uint value;
+    uint arrivedBirds;
     bool resolved;
-    mapping(uint => string) response;
+    mapping(uint => uint) response;
     mapping(address => uint) nest; 
   }
   
@@ -48,11 +51,13 @@ contract BirdOracle {
     uint id,
     string url,
     string key,
-    string value
+    uint value
   );
 
   // container for the ratings
-  mapping (string => string) ratings;
+  mapping (string => uint) ratings;
+
+  mapping (address => uint) userRatings;
 
   function newChainRequest (
     string memory _url,
@@ -60,8 +65,8 @@ contract BirdOracle {
   )
   public   
   {
-    uint lenght = onChainRequests.push(BirdRequest(trackId, _url, _key, "", false));
-    BirdRequest storage r = onChainRequests[lenght-1];
+    uint length = onChainRequests.push(BirdRequest(trackId, _url, _key, 0, 0, false));
+    BirdRequest storage r = onChainRequests[length - 1];
 
     /**
    * trusted oracles in bird nest
@@ -98,7 +103,7 @@ contract BirdOracle {
    */
   function updatedChainRequest (
     uint _id,
-    string memory _valueResponse
+    uint _valueResponse
   ) public {
 
     BirdRequest storage trackRequest = onChainRequests[_id];
@@ -120,38 +125,29 @@ contract BirdOracle {
        * Loop through responses for empty position, save the response
        * TODO: refactor
        */
-      uint tmpI = 0;
-      bool found = false;
-      while(!found) {
-          
-        if(bytes(trackRequest.response[tmpI]).length == 0){
-          found = true;
-          trackRequest.response[tmpI] = _valueResponse;
-        }
-        tmpI++;
-      }
-
-      uint currentConsensusCount = 0;
+      uint tmpI = trackRequest.arrivedBirds;
+      trackRequest.response[tmpI] = _valueResponse;
+      trackRequest.arrivedBirds = tmpI + 1;
+      
+      uint currentConsensusCount = 1;
       
         /**
        * Loop through list and check if min consensus has been reached
        */
       
-      for(uint i = 0; i < birdNest; i++){
-        bytes memory a = bytes(trackRequest.response[i]);
-        bytes memory b = bytes(_valueResponse);
+      for(uint i = 0; i < tmpI; i++){
+        uint a = trackRequest.response[i];
+        uint b = _valueResponse;
 
-        if(keccak256(a) == keccak256(b)){
+        if(a == b){
           currentConsensusCount++;
           if(currentConsensusCount >= minConsensus){
             trackRequest.value = _valueResponse;
-
             trackRequest.resolved = true;
 
             // Save value and user information into the bird rating container
             ratings[trackRequest.url] = trackRequest.value;
             
-
             emit UpdatedRequest (
               trackRequest.id,
               trackRequest.url,
@@ -167,8 +163,22 @@ contract BirdOracle {
     /**
    * access to saved ratings after Oracle consensus
    */
-  function getRating(string memory _url) public view returns (string memory) {
-        return ratings[_url];
+  function getRating(string memory _url) public view returns (uint) {
+    return ratings[_url];
+  }
+
+  function updateRating(address _address, uint value) public {
+    userRatings[_address] = value;
+  }
+  /**
+   * get rating by address
+   */
+  function getAddressRating(address _address) public view returns (uint){
+    return userRatings[_address];
+  }
+
+  function concatString(string memory _a, string memory _b) internal pure returns (string memory) {
+    return string(abi.encodePacked(_a,_b));
   }
 
 }

@@ -2,7 +2,7 @@
   "name": "weather-oracle",
   "version": "1.0.0",
   "description": "Weather Oracle Auditer",
-  "main": "truffle.js",
+  "main": "truffle-config.js",
   "directories": {
     "test": "test"
   },
@@ -12,9 +12,9 @@
   "author": "Adam Gall",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^5.0.1",
-    "ganache-cli": "^6.1.2",
-    "truffle": "^4.1.11",
-    "truffle-hdwallet-provider": "^0.0.5"
+    "dotenv": "^8.2.0",
+    "ganache-cli": "^6.12.2",
+    "truffle": "^5.1.61",
+    "truffle-hdwallet-provider": "^1.0.17"
   }
 }
