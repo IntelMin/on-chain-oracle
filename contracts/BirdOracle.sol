@@ -172,8 +172,16 @@ contract BirdOracle {
    * access to saved ratings after Oracle consensus
    */
 
-  function getRating(string memory _str) public view returns (uint) {
+  function getRatingByAddress(address _addr) public view returns (uint) {
+    return ratings[_addr];
+  }
+
+  function getRatingByAddressString(string memory _str) public view returns (uint) {
     return ratings[parseAddr(_str)];
+  }
+
+  function getRating() public view returns (uint) {
+    return ratings[msg.sender];
   }
 
   function extractAddress(string memory url) internal pure returns (string memory) {
